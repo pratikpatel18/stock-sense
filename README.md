@@ -1,73 +1,82 @@
-# Welcome to your Lovable project
+# Stock Whisper AI Hub
 
-## Project info
+A modern stock market dashboard built with React, TypeScript, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/e1764d6e-f1d5-41fd-b961-fdee012e333b
+## Features
 
-## How can I edit this code?
+- **Real-time Stock Data**: Fetches live stock quotes and chart data
+- **Market Overview**: View key market indices and sentiment
+- **Watchlist**: Track your favorite stocks
+- **Interactive Charts**: Visualize stock price trends over different time periods
+- **Responsive Design**: Works on desktop and mobile devices
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e1764d6e-f1d5-41fd-b961-fdee012e333b) and start prompting.
+- Node.js 16+ (or Bun)
+- An Alpha Vantage API key (for stock data)
 
-Changes made via Lovable will be committed automatically to this repo.
+### Setup
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/stock-whisper-ai-hub.git
+cd stock-whisper-ai-hub
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies
+```bash
+npm install
+# or
+bun install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Set up your API key
+   - Get a free API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+   - Copy the `.env.local.example` file to `.env.local`
+   - Replace `your_alpha_vantage_api_key_here` with your actual API key
 
-**Use GitHub Codespaces**
+4. Start the development server
+```bash
+npm run dev
+# or
+bun dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+5. Open [http://localhost:5173](http://localhost:5173) in your browser
 
-## What technologies are used for this project?
+## Usage
 
-This project is built with:
+- **Stock Chart**: Select different time ranges (1D, 1W, 1M, 3M, 1Y, All)
+- **Watchlist**: 
+  - Click the "+" button to add new stocks
+  - Click the star icon to favorite stocks
+  - Hover over a stock to see the remove button
+- **Market Overview**: See the major indices' performance and overall market sentiment
 
-- Vite
-- TypeScript
+## Limitations
+
+- The Alpha Vantage free tier has rate limits (5 calls per minute, 500 per day)
+- The portfolio section requires authentication (not implemented in this demo)
+
+## Tech Stack
+
 - React
-- shadcn-ui
+- TypeScript
+- Vite
 - Tailwind CSS
+- shadcn/ui Components
+- Recharts for data visualization
 
-## How can I deploy this project?
+## Future Enhancements
 
-Simply open [Lovable](https://lovable.dev/projects/e1764d6e-f1d5-41fd-b961-fdee012e333b) and click on Share -> Publish.
+- User authentication
+- Portfolio tracking with real positions
+- Stock news integration
+- Stock screener
+- Advanced technical indicators
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT

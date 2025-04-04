@@ -1,10 +1,10 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Star, PlusCircle, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Star, PlusCircle, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fetchStockQuote } from '@/lib/api';
 
 interface StockItem {
   symbol: string;
@@ -13,20 +13,97 @@ interface StockItem {
   change: number;
   changePercent: number;
   starred: boolean;
+  isLoading?: boolean;
 }
 
 const WatchlistCard = () => {
-  const [watchlistStocks, setWatchlistStocks] = useState<StockItem[]>([
-    { symbol: 'AAPL', name: 'Apple Inc.', price: 173.41, change: 2.56, changePercent: 1.5, starred: true },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', price: 397.58, change: 5.37, changePercent: 1.37, starred: true },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 141.16, change: -1.32, changePercent: -0.93, starred: false },
-    { symbol: 'AMZN', name: 'Amazon.com', price: 175.35, change: 3.12, changePercent: 1.81, starred: false },
-    { symbol: 'TSLA', name: 'Tesla Inc.', price: 203.64, change: -7.48, changePercent: -3.54, starred: true },
-    { symbol: 'META', name: 'Meta Platforms', price: 474.38, change: 8.62, changePercent: 1.85, starred: false },
-  ]);
+  // Initial watchlist with common stocks
+  const initialWatchlist: StockItem[] = [
+    { symbol: 'AAPL', name: 'Apple Inc.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'MSFT', name: 'Microsoft Corp.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+    { symbol: 'AMZN', name: 'Amazon.com', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+    { symbol: 'TSLA', name: 'Tesla Inc.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'META', name: 'Meta Platforms', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+  ];
   
+  const [watchlistStocks, setWatchlistStocks] = useState<StockItem[]>(initialWatchlist);
   const [showAddSymbol, setShowAddSymbol] = useState(false);
   const [newSymbol, setNewSymbol] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoadingAll, setIsLoadingAll] = useState(true);
+  
+  // Load watchlist from localStorage or use default
+  useEffect(() => {
+    const savedWatchlist = localStorage.getItem('watchlist');
+    if (savedWatchlist) {
+      try {
+        const parsed = JSON.parse(savedWatchlist);
+        // Mark all saved stocks as loading initially
+        const withLoading = parsed.map((stock: StockItem) => ({
+          ...stock,
+          isLoading: true
+        }));
+        setWatchlistStocks(withLoading);
+      } catch (err) {
+        console.error("Error parsing saved watchlist:", err);
+      }
+    }
+  }, []);
+  
+  // Save watchlist to localStorage when it changes
+  useEffect(() => {
+    if (!isLoadingAll) {
+      localStorage.setItem('watchlist', JSON.stringify(watchlistStocks));
+    }
+  }, [watchlistStocks, isLoadingAll]);
+  
+  // Fetch data for each stock in watchlist
+  useEffect(() => {
+    const fetchAllStockData = async () => {
+      setIsLoadingAll(true);
+      let updatedStocks = [...watchlistStocks];
+      let hasError = false;
+      
+      // Create a promise for each stock quote
+      const promises = watchlistStocks.map(async (stock, index) => {
+        try {
+          const quote = await fetchStockQuote(stock.symbol);
+          // Update the stock with real data
+          updatedStocks[index] = {
+            ...updatedStocks[index],
+            price: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            isLoading: false
+          };
+        } catch (err) {
+          console.error(`Error fetching data for ${stock.symbol}:`, err);
+          hasError = true;
+          // Mark as not loading but keep existing data
+          updatedStocks[index] = {
+            ...updatedStocks[index],
+            isLoading: false
+          };
+        }
+      });
+      
+      // Wait for all promises to resolve
+      await Promise.all(promises);
+      
+      setWatchlistStocks(updatedStocks);
+      setError(hasError ? "Some stocks failed to load" : null);
+      setIsLoadingAll(false);
+    };
+    
+    if (watchlistStocks.length > 0) {
+      fetchAllStockData();
+      
+      // Refresh every 60 seconds
+      const interval = setInterval(fetchAllStockData, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [watchlistStocks.length]);
   
   const toggleStar = (index: number) => {
     const updatedStocks = [...watchlistStocks];
@@ -40,21 +117,58 @@ const WatchlistCard = () => {
     setWatchlistStocks(updatedStocks);
   };
   
-  const addSymbol = () => {
+  const addSymbol = async () => {
     if (newSymbol.trim()) {
-      // In a real app, this would validate and fetch the stock data
-      const mockNewStock: StockItem = {
-        symbol: newSymbol.toUpperCase(),
-        name: `${newSymbol.toUpperCase()} Corp.`,
-        price: Math.random() * 500 + 50,
-        change: (Math.random() * 10) - 5,
-        changePercent: (Math.random() * 5) - 2.5,
-        starred: false
+      const symbol = newSymbol.toUpperCase().trim();
+      
+      // Check if symbol already exists in watchlist
+      if (watchlistStocks.some(stock => stock.symbol === symbol)) {
+        setError(`${symbol} is already in your watchlist`);
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+      
+      // Add new symbol with loading state
+      const newStock: StockItem = {
+        symbol,
+        name: `${symbol}`,
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        starred: false,
+        isLoading: true
       };
       
-      setWatchlistStocks([...watchlistStocks, mockNewStock]);
+      setWatchlistStocks([...watchlistStocks, newStock]);
       setNewSymbol('');
       setShowAddSymbol(false);
+      
+      // Fetch data for the new stock
+      try {
+        const quote = await fetchStockQuote(symbol);
+        // Update the new stock with real data
+        setWatchlistStocks(currentStocks => {
+          const updatedStocks = [...currentStocks];
+          const newStockIndex = updatedStocks.findIndex(s => s.symbol === symbol);
+          
+          if (newStockIndex >= 0) {
+            updatedStocks[newStockIndex] = {
+              ...updatedStocks[newStockIndex],
+              price: quote.price,
+              change: quote.change,
+              changePercent: quote.changePercent,
+              name: quote.name || symbol,
+              isLoading: false
+            };
+          }
+          
+          return updatedStocks;
+        });
+      } catch (err) {
+        console.error(`Error fetching data for ${symbol}:`, err);
+        setError(`Failed to load data for ${symbol}`);
+        setTimeout(() => setError(null), 3000);
+      }
     }
   };
   
@@ -64,71 +178,86 @@ const WatchlistCard = () => {
         <CardTitle className="text-xl font-semibold">Watchlist</CardTitle>
         <Button 
           variant="ghost" 
-          size="sm" 
-          className="h-8 px-2"
+          size="icon"
           onClick={() => setShowAddSymbol(!showAddSymbol)}
         >
-          <PlusCircle className="h-4 w-4" />
-          <span className="ml-1">Add</span>
+          <PlusCircle className="h-5 w-5" />
         </Button>
       </CardHeader>
       <CardContent>
         {showAddSymbol && (
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-4">
             <Input 
-              placeholder="Enter symbol..." 
-              value={newSymbol} 
+              placeholder="Add symbol (e.g. AAPL)"
+              value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value)}
-              className="h-8"
+              className="flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && addSymbol()}
             />
-            <Button className="h-8" onClick={addSymbol}>Add</Button>
+            <Button onClick={addSymbol}>Add</Button>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-2 text-sm text-red-500">
+            {error}
           </div>
         )}
         
         <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-          {watchlistStocks.map((stock, index) => {
-            const isPositive = stock.change >= 0;
-            
-            return (
-              <div 
-                key={stock.symbol} 
-                className="flex justify-between items-center p-2 hover:bg-secondary/50 rounded-md cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7" 
-                    onClick={() => toggleStar(index)}
-                  >
-                    <Star 
-                      className={`h-4 w-4 ${stock.starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
-                    />
-                  </Button>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{stock.symbol}</span>
-                    <span className="text-xs text-muted-foreground">{stock.name}</span>
+          {watchlistStocks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Your watchlist is empty. Add some stocks to track.
+            </div>
+          ) : (
+            watchlistStocks.map((stock, index) => {
+              const isPositive = stock.change >= 0;
+              
+              return (
+                <div 
+                  key={stock.symbol} 
+                  className="flex justify-between items-center p-2 hover:bg-secondary/50 rounded-md cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7" 
+                      onClick={() => toggleStar(index)}
+                    >
+                      <Star 
+                        className={`h-4 w-4 ${stock.starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
+                      />
+                    </Button>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{stock.symbol}</span>
+                      <span className="text-xs text-muted-foreground">{stock.name}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {stock.isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <div className="flex flex-col items-end">
+                        <span className="font-medium">${stock.price.toFixed(2)}</span>
+                        <span className={isPositive ? 'text-up text-xs' : 'text-down text-xs'}>
+                          {isPositive ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                        </span>
+                      </div>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 opacity-0 hover:opacity-100 transition-opacity"
+                      onClick={() => removeStock(index)}
+                    >
+                      <X className="h-3 w-3 text-muted-foreground" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col items-end">
-                    <span className="font-medium">${stock.price.toFixed(2)}</span>
-                    <span className={isPositive ? 'text-up text-xs' : 'text-down text-xs'}>
-                      {isPositive ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7 opacity-0 hover:opacity-100 transition-opacity"
-                    onClick={() => removeStock(index)}
-                  >
-                    <X className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,7 +1,8 @@
-
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
+import { ArrowUp, ArrowDown, TrendingUp, Loader2 } from "lucide-react";
+import { fetchMarketIndices } from "@/lib/api";
 
 interface MarketIndexProps {
   name: string;
@@ -30,13 +31,31 @@ const MarketIndex = ({ name, price, change, changePercent }: MarketIndexProps) =
 };
 
 const MarketOverview = () => {
-  // Mock data - would be fetched from API in production
-  const marketIndices = [
-    { name: "S&P 500", price: 4982.73, change: 38.41, changePercent: 0.78 },
-    { name: "Nasdaq", price: 15628.95, change: 164.90, changePercent: 1.07 },
-    { name: "Dow Jones", price: 36879.00, change: -134.15, changePercent: -0.36 },
-    { name: "Russell 2000", price: 2014.38, change: 7.34, changePercent: 0.37 }
-  ];
+  const [marketIndices, setMarketIndices] = useState<MarketIndexProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getMarketData = async () => {
+      try {
+        const data = await fetchMarketIndices();
+        setMarketIndices(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching market indices:", err);
+        setError("Failed to load market data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getMarketData();
+    
+    // Refresh every 60 seconds
+    const interval = setInterval(getMarketData, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Calculate overall market sentiment based on indices
   const positiveIndices = marketIndices.filter(index => index.change > 0).length;
@@ -47,15 +66,32 @@ const MarketOverview = () => {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-xl font-semibold">Market Overview</CardTitle>
-        <Badge className={`${sentimentColor}`} variant="outline">
-          <TrendingUp className="mr-1 h-3 w-3" />
-          {sentiment}
-        </Badge>
+        {marketIndices.length > 0 ? (
+          <Badge className={`${sentimentColor}`} variant="outline">
+            <TrendingUp className="mr-1 h-3 w-3" />
+            {sentiment}
+          </Badge>
+        ) : (
+          <Badge variant="outline">
+            <TrendingUp className="mr-1 h-3 w-3" />
+            Loading...
+          </Badge>
+        )}
       </CardHeader>
       <CardContent>
-        {marketIndices.map((index, i) => (
-          <MarketIndex key={i} {...index} />
-        ))}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-500">{error}</p>
+          </div>
+        ) : (
+          marketIndices.map((index, i) => (
+            <MarketIndex key={i} {...index} />
+          ))
+        )}
       </CardContent>
     </Card>
   );
