@@ -89,7 +89,7 @@ const PortfolioPage = () => {
       
       toast({
         title: "Position added",
-        description: `Added ${position.shares} shares of ${position.symbol} at $${position.avgPrice}`
+        description: `Added ${position.shares} shares of ${position.symbol} at ₹${position.avgPrice.toFixed(2)}`
       });
       
       // Reset form
@@ -194,7 +194,7 @@ const PortfolioPage = () => {
             ))}
           </Pie>
           <ChartTooltip 
-            formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name]}
+            formatter={(value: number, name: string) => [`₹${value.toLocaleString()}`, name]}
           />
         </RechartsChart>
       </ResponsiveContainer>
@@ -227,7 +227,7 @@ const PortfolioPage = () => {
               <CardTitle>Total Value</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${portfolio.totalValue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">₹{portfolio.totalValue.toLocaleString()}</div>
             </CardContent>
           </Card>
           
@@ -332,8 +332,8 @@ const PortfolioPage = () => {
                       </Link>
                     </div>
                     <div className="col-span-2 text-right">{position.shares}</div>
-                    <div className="col-span-2 text-right">${position.avgPrice.toFixed(2)}</div>
-                    <div className="col-span-2 text-right">${position.currentPrice?.toFixed(2) || '--'}</div>
+                    <div className="col-span-2 text-right">₹{position.avgPrice.toFixed(2)}</div>
+                    <div className="col-span-2 text-right">₹{position.currentPrice?.toFixed(2) || '--'}</div>
                     <div className={`col-span-1 text-right ${position.changePercent >= 0 ? 'text-up' : 'text-down'}`}>
                       {position.changePercent ? (
                         <>{position.changePercent >= 0 ? '+' : ''}{position.changePercent.toFixed(2)}%</>
@@ -390,7 +390,7 @@ const PortfolioPage = () => {
               </Label>
               <Input
                 id="symbol"
-                placeholder="AAPL"
+                placeholder="RELIANCE"
                 className="col-span-3"
                 value={newPosition.symbol}
                 onChange={(e) => setNewPosition({...newPosition, symbol: e.target.value})}
@@ -403,7 +403,7 @@ const PortfolioPage = () => {
               <Input
                 id="shares"
                 type="number"
-                placeholder="0"
+                placeholder="10"
                 className="col-span-3"
                 value={newPosition.shares}
                 onChange={(e) => setNewPosition({...newPosition, shares: e.target.value})}
@@ -411,12 +411,12 @@ const PortfolioPage = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="cost" className="text-right">
-                Average Cost
+                Average Cost (₹)
               </Label>
               <Input
                 id="cost"
                 type="number"
-                placeholder="0.00"
+                placeholder="2800.50"
                 className="col-span-3"
                 value={newPosition.averageCost}
                 onChange={(e) => setNewPosition({...newPosition, averageCost: e.target.value})}

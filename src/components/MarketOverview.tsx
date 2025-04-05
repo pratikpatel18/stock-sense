@@ -18,11 +18,11 @@ const MarketIndex = ({ name, price, change, changePercent }: MarketIndexProps) =
     <div className="flex justify-between items-center py-2 border-b last:border-0 border-border">
       <div className="flex flex-col">
         <span className="font-medium">{name}</span>
-        <span className="text-sm text-muted-foreground">${price.toLocaleString()}</span>
+        <span className="text-sm text-muted-foreground">₹{(price * 83.15).toLocaleString()}</span>
       </div>
       <div className={`flex items-center ${isPositive ? 'text-up' : 'text-down'}`}>
         <span className="font-medium mr-1">
-          {isPositive ? '+' : ''}{change.toFixed(2)} ({changePercent.toFixed(2)}%)
+          {isPositive ? '+' : ''}{(change * 83.15).toFixed(2)} ({changePercent.toFixed(2)}%)
         </span>
         {isPositive ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
       </div>

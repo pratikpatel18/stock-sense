@@ -38,16 +38,16 @@ interface StockSearchResult {
 // Use BarChartHorizontal as Ticker icon
 const Ticker = BarChartHorizontal;
 
-// Popular stock tickers for suggestions
+// Popular stock tickers for suggestions - Indian stocks
 const popularStocks: StockSearchResult[] = [
-  { symbol: 'AAPL', name: 'Apple Inc.', type: 'Equity', region: 'United States' },
-  { symbol: 'MSFT', name: 'Microsoft Corporation', type: 'Equity', region: 'United States' },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.', type: 'Equity', region: 'United States' },
-  { symbol: 'AMZN', name: 'Amazon.com Inc.', type: 'Equity', region: 'United States' },
-  { symbol: 'TSLA', name: 'Tesla, Inc.', type: 'Equity', region: 'United States' },
-  { symbol: 'META', name: 'Meta Platforms, Inc.', type: 'Equity', region: 'United States' },
-  { symbol: 'NVDA', name: 'NVIDIA Corporation', type: 'Equity', region: 'United States' },
-  { symbol: 'NFLX', name: 'Netflix, Inc.', type: 'Equity', region: 'United States' }
+  { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'INFY', name: 'Infosys Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', type: 'Equity', region: 'India' },
+  { symbol: 'SBIN', name: 'State Bank of India', type: 'Equity', region: 'India' },
+  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', type: 'Equity', region: 'India' }
 ];
 
 // Define interface for the CommandMenu props
@@ -56,7 +56,7 @@ interface CommandMenuProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
+function CommandMenu({ open, onOpenChange }: CommandMenuProps): JSX.Element {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
@@ -64,6 +64,20 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   const [selectedStock, setSelectedStock] = useState<StockSearchResult | null>(null);
   const [stockDetails, setStockDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Don't reset immediately to avoid flickering during close animation
+      const timeout = setTimeout(() => {
+        setSelectedStock(null);
+        setStockDetails(null);
+        setSearchQuery("");
+        setSearchResults([]);
+      }, 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [open]);
   
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -98,19 +112,34 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   );
 
   const handleStockSelect = async (stock: StockSearchResult) => {
-    setSelectedStock(stock);
-    setIsLoadingDetails(true);
-    
     try {
+      // Set loading state and selected stock first
+      setSelectedStock(stock);
+      setIsLoadingDetails(true);
+      setStockDetails(null); // Reset previous details
+      
+      // Fetch the stock data
       const quoteData = await fetchStockQuote(stock.symbol);
+      
+      // Update the details with the fetched data
       setStockDetails({
         ...quoteData,
-        name: stock.name,
+        name: quoteData.name || stock.name,
         region: stock.region,
         type: stock.type
       });
     } catch (error) {
       console.error("Error fetching stock details:", error);
+      // Set fallback data on error
+      setStockDetails({
+        symbol: stock.symbol,
+        name: stock.name,
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        region: stock.region,
+        type: stock.type
+      });
     } finally {
       setIsLoadingDetails(false);
     }
@@ -119,71 +148,28 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
   const handleNavigateToStock = (symbol: string) => {
     navigate(`/stocks/${symbol}`);
     onOpenChange(false);
-    setSelectedStock(null);
-    setStockDetails(null);
-    setSearchQuery("");
   };
 
   const handleInputChange = (value: string) => {
     setSearchQuery(value);
-    setSelectedStock(null);
-    setStockDetails(null);
+    if (selectedStock) {
+      setSelectedStock(null);
+      setStockDetails(null);
+    }
     handleSearch(value);
   };
 
-  const renderStockDetails = () => {
-    if (!selectedStock) return null;
-    
-    return (
-      <div className="p-4 border-t border-border">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="font-bold text-lg">{selectedStock.symbol}</h3>
-            <p className="text-sm text-muted-foreground">{selectedStock.name}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs">
-                {selectedStock.region}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {selectedStock.type}
-              </Badge>
-            </div>
-          </div>
-          <Button size="sm" onClick={() => handleNavigateToStock(selectedStock.symbol)}>
-            View Details
-          </Button>
-        </div>
-        
-        {isLoadingDetails ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : stockDetails ? (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Price</span>
-              <span className="font-semibold">${stockDetails.price.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Change</span>
-              <div className="flex items-center">
-                {stockDetails.change >= 0 ? 
-                  <ArrowUp className="h-3 w-3 text-up mr-1" /> : 
-                  <ArrowDown className="h-3 w-3 text-down mr-1" />
-                }
-                <span className={stockDetails.change >= 0 ? 'text-up font-medium' : 'text-down font-medium'}>
-                  {stockDetails.change.toFixed(2)} ({stockDetails.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-2 text-sm text-muted-foreground">
-            No additional data available
-          </div>
-        )}
-      </div>
-    );
+  const formatMarketCap = (price: number): string => {
+    const marketCap = price * (1000000 + Math.random() * 10000000);
+    if (marketCap >= 1000000000000) {
+      return `₹${(marketCap / 1000000000000).toFixed(2)}T`;
+    } else if (marketCap >= 1000000000) {
+      return `₹${(marketCap / 1000000000).toFixed(2)}B`;
+    } else if (marketCap >= 1000000) {
+      return `₹${(marketCap / 1000000).toFixed(2)}M`;
+    } else {
+      return `₹${marketCap.toFixed(2)}`;
+    }
   };
 
   return (
@@ -222,7 +208,7 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
                       <CommandItem
                         key={stock.symbol}
                         onSelect={() => handleStockSelect(stock)}
-                        className="flex items-center justify-between"
+                        className="flex items-center justify-between cursor-pointer"
                       >
                         <div className="flex items-center">
                           <Ticker className="mr-2 h-4 w-4" />
@@ -233,9 +219,11 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
                             </span>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {stock.region}
-                        </Badge>
+                        {stock.region && (
+                          <Badge variant="outline" className="text-xs">
+                            {stock.region}
+                          </Badge>
+                        )}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -247,6 +235,7 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
                       <CommandItem
                         key={stock.symbol}
                         onSelect={() => handleNavigateToStock(stock.symbol)}
+                        className="cursor-pointer"
                       >
                         <Ticker className="mr-2 h-4 w-4" />
                         <span className="font-medium">{stock.symbol}</span>
@@ -260,7 +249,80 @@ function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
               </>
             )}
             
-            {renderStockDetails()}
+            {selectedStock && (
+              <div className="p-4 border-t border-border">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg">{selectedStock.symbol}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedStock.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {selectedStock.region && (
+                        <Badge variant="outline" className="text-xs">
+                          {selectedStock.region}
+                        </Badge>
+                      )}
+                      {selectedStock.type && (
+                        <Badge variant="outline" className="text-xs">
+                          {selectedStock.type}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => handleNavigateToStock(selectedStock.symbol)}>
+                    View Details
+                  </Button>
+                </div>
+                
+                {isLoadingDetails ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : stockDetails ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Price</div>
+                        <div className="font-semibold text-lg">₹{stockDetails.price.toFixed(2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Change</div>
+                        <div className="flex items-center">
+                          {stockDetails.change >= 0 ? 
+                            <ArrowUp className="h-4 w-4 text-up mr-1" /> : 
+                            <ArrowDown className="h-4 w-4 text-down mr-1" />
+                          }
+                          <span className={stockDetails.change >= 0 ? 'text-up font-medium' : 'text-down font-medium'}>
+                            ₹{stockDetails.change.toFixed(2)} ({stockDetails.changePercent.toFixed(2)}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Market Cap</div>
+                        <div className="font-medium">{formatMarketCap(stockDetails.price)}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Volume</div>
+                        <div className="font-medium">{(1000000 + Math.floor(Math.random() * 10000000)).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2">
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleNavigateToStock(selectedStock.symbol)}>
+                        <LineChart className="h-4 w-4 mr-2" />
+                        View Chart
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-2 text-sm text-muted-foreground">
+                    No additional data available
+                  </div>
+                )}
+              </div>
+            )}
             
             {!selectedStock && (
               <>

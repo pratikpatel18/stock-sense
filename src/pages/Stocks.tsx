@@ -10,22 +10,22 @@ import { Loader2, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react';
 
 // Popular stock tickers for display
 const popularStocks = [
-  { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 175.04, change: 0.56, changePercent: 0.32 },
-  { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', price: 340.67, change: 3.45, changePercent: 1.02 },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', price: 138.56, change: -0.78, changePercent: -0.56 },
-  { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer Cyclical', price: 174.63, change: 1.24, changePercent: 0.72 },
-  { symbol: 'TSLA', name: 'Tesla, Inc.', sector: 'Automotive', price: 238.72, change: -4.29, changePercent: -1.76 },
-  { symbol: 'META', name: 'Meta Platforms, Inc.', sector: 'Technology', price: 451.52, change: 7.89, changePercent: 1.78 },
-  { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology', price: 825.36, change: 15.32, changePercent: 1.89 },
-  { symbol: 'NFLX', name: 'Netflix, Inc.', sector: 'Entertainment', price: 602.78, change: -2.36, changePercent: -0.39 },
-  { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Financial Services', price: 183.94, change: 1.45, changePercent: 0.79 },
-  { symbol: 'V', name: 'Visa Inc.', sector: 'Financial Services', price: 275.36, change: 0.87, changePercent: 0.32 },
-  { symbol: 'PG', name: 'Procter & Gamble Co.', sector: 'Consumer Defensive', price: 162.45, change: -0.34, changePercent: -0.21 },
-  { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', price: 151.78, change: 0.92, changePercent: 0.61 },
-  { symbol: 'UNH', name: 'UnitedHealth Group Inc.', sector: 'Healthcare', price: 493.26, change: 5.87, changePercent: 1.2 },
-  { symbol: 'HD', name: 'Home Depot Inc.', sector: 'Consumer Cyclical', price: 343.19, change: -1.23, changePercent: -0.36 },
-  { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'Healthcare', price: 27.43, change: -0.15, changePercent: -0.54 },
-  { symbol: 'BAC', name: 'Bank of America Corp.', sector: 'Financial Services', price: 37.12, change: 0.45, changePercent: 1.23 },
+  { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', sector: 'Energy', price: 2874.25, change: 32.45, changePercent: 1.14 },
+  { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', sector: 'Technology', price: 3671.80, change: 45.20, changePercent: 1.25 },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', sector: 'Financial Services', price: 1689.35, change: -12.40, changePercent: -0.73 },
+  { symbol: 'INFY', name: 'Infosys Ltd.', sector: 'Technology', price: 1522.75, change: 18.55, changePercent: 1.23 },
+  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', sector: 'Consumer Defensive', price: 2514.60, change: -9.75, changePercent: -0.39 },
+  { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', sector: 'Financial Services', price: 1052.40, change: 21.30, changePercent: 2.07 },
+  { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', sector: 'Communication Services', price: 1187.50, change: 15.45, changePercent: 1.32 },
+  { symbol: 'ITC', name: 'ITC Ltd.', sector: 'Consumer Defensive', price: 436.25, change: -2.15, changePercent: -0.49 },
+  { symbol: 'SBIN', name: 'State Bank of India', sector: 'Financial Services', price: 745.90, change: 12.35, changePercent: 1.68 },
+  { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', sector: 'Financial Services', price: 6840.75, change: 78.50, changePercent: 1.16 },
+  { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd.', sector: 'Basic Materials', price: 3144.55, change: -28.60, changePercent: -0.90 },
+  { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', sector: 'Automotive', price: 10526.85, change: 142.30, changePercent: 1.37 },
+  { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries Ltd.', sector: 'Healthcare', price: 1352.20, change: 23.45, changePercent: 1.77 },
+  { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd.', sector: 'Automotive', price: 942.15, change: -12.35, changePercent: -1.29 },
+  { symbol: 'WIPRO', name: 'Wipro Ltd.', sector: 'Technology', price: 472.50, change: -3.25, changePercent: -0.68 },
+  { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank Ltd.', sector: 'Financial Services', price: 1784.30, change: 25.60, changePercent: 1.45 },
 ];
 
 // Market sectors with performance data
@@ -43,29 +43,34 @@ const sectors = [
 ];
 
 const StocksPage = () => {
-  const [marketIndices, setMarketIndices] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [marketIndices, setMarketIndices] = useState<any[]>([
+    { name: 'NIFTY 50', symbol: 'NIFTY', price: 22460.35, change: 78.25, changePercent: 0.35 },
+    { name: 'BSE SENSEX', symbol: 'SENSEX', price: 73852.20, change: 242.60, changePercent: 0.33 },
+    { name: 'NIFTY Bank', symbol: 'BANKNIFTY', price: 48275.15, change: -185.35, changePercent: -0.38 },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   
-  useEffect(() => {
-    const getMarketData = async () => {
-      setIsLoading(true);
-      try {
-        const indices = await fetchMarketIndices();
-        setMarketIndices(indices);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching market indices:', err);
-        setError("Failed to load market data");
-        setMarketIndices([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    getMarketData();
-  }, []);
+  // Comment out or remove the useEffect that fetches market indices
+  // useEffect(() => {
+  //   const getMarketData = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const indices = await fetchMarketIndices();
+  //       setMarketIndices(indices);
+  //       setError(null);
+  //     } catch (err) {
+  //       console.error('Error fetching market indices:', err);
+  //       setError("Failed to load market data");
+  //       setMarketIndices([]);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   
+  //   getMarketData();
+  // }, []);
   
   const filteredStocks = popularStocks.filter(stock => 
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -160,9 +165,11 @@ const StocksPage = () => {
                     <div className="col-span-4 font-medium">{stock.name}</div>
                     <div className="col-span-2">{stock.symbol}</div>
                     <div className="col-span-2 hidden md:block">{stock.sector}</div>
-                    <div className="col-span-2 text-right">${stock.price.toFixed(2)}</div>
+                    <div className="col-span-2 text-right">₹{stock.price.toFixed(2)}</div>
                     <div className={`col-span-2 md:col-span-2 text-right ${stock.change >= 0 ? 'text-up' : 'text-down'}`}>
-                      {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                      <span className={stock.change >= 0 ? 'text-up' : 'text-down'}>
+                        {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                      </span>
                     </div>
                   </Link>
                 ))

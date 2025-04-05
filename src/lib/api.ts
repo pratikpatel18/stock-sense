@@ -77,34 +77,124 @@ export interface StockSearchResult {
 // Stock quote API
 export const fetchStockQuote = async (symbol: string): Promise<StockQuote> => {
   try {
-    const response = await fetch(`${BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`);
-    const data = await response.json();
+    // First, try to get the quote data
+    const quoteResponse = await fetch(`${BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`);
     
-    if (data['Error Message']) {
-      throw new Error(data['Error Message']);
+    if (!quoteResponse.ok) {
+      throw new Error(`API error: ${quoteResponse.status}`);
     }
     
-    const quote = data['Global Quote'];
+    const quoteData = await quoteResponse.json();
+    
+    if (quoteData['Error Message'] || quoteData['Information']) {
+      throw new Error(quoteData['Error Message'] || quoteData['Information']);
+    }
+    
+    const quote = quoteData['Global Quote'];
     if (!quote || Object.keys(quote).length === 0) {
       throw new Error('Invalid response from API');
     }
     
+    let companyName = symbol;
+    
+    // Try to get company info to get the name
+    try {
+      const overviewResponse = await fetch(`${BASE_URL}?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEY}`);
+      
+      if (overviewResponse.ok) {
+        const overviewData = await overviewResponse.json();
+        
+        if (overviewData && overviewData.Name && !overviewData['Error Message']) {
+          companyName = overviewData.Name;
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching company info for ${symbol}:`, error);
+      // If we can't get the company name, just continue with the symbol
+    }
+    
+    // Safely parse numerical values with fallbacks
+    const priceStr = quote['05. price'] || '0';
+    const changeStr = quote['09. change'] || '0';
+    const changePercentStr = quote['10. change percent'] || '0%';
+    
+    // Remove any '%' character and convert to number
+    const price = parseFloat(priceStr) || 0;
+    const change = parseFloat(changeStr) || 0;
+    const changePercent = parseFloat(changePercentStr.replace('%', '')) || 0;
+    
     return {
       symbol,
-      price: parseFloat(quote['05. price']),
-      change: parseFloat(quote['09. change']),
-      changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
+      name: companyName,
+      price,
+      change,
+      changePercent,
     };
   } catch (error) {
     console.error(`Error fetching quote for ${symbol}:`, error);
     // Return mock data as fallback
-    return {
-      symbol,
-      price: 100 + Math.random() * 200,
-      change: (Math.random() * 10) - 5,
-      changePercent: (Math.random() * 5) - 2.5,
-    };
+    return getMockStockQuote(symbol);
   }
+};
+
+// Helper functions for mock data generation
+const sumCharCodes = (str: string): number => {
+  let sum = 0;
+  for (let i = 0; i < str.length; i++) {
+    sum += str.charCodeAt(i);
+  }
+  return sum;
+};
+
+const getCompanyName = (symbol: string): string => {
+  const companyNames: Record<string, string> = {
+    'RELIANCE': 'Reliance Industries Ltd.',
+    'TCS': 'Tata Consultancy Services Ltd.',
+    'HDFCBANK': 'HDFC Bank Ltd.',
+    'INFY': 'Infosys Ltd.',
+    'HINDUNILVR': 'Hindustan Unilever Ltd.',
+    'ICICIBANK': 'ICICI Bank Ltd.',
+    'BHARTIARTL': 'Bharti Airtel Ltd.',
+    'ITC': 'ITC Ltd.',
+    'SBIN': 'State Bank of India',
+    'BAJFINANCE': 'Bajaj Finance Ltd.',
+    'ASIANPAINT': 'Asian Paints Ltd.',
+    'MARUTI': 'Maruti Suzuki India Ltd.',
+    'SUNPHARMA': 'Sun Pharmaceutical Industries Ltd.',
+    'TATAMOTORS': 'Tata Motors Ltd.',
+    'WIPRO': 'Wipro Ltd.',
+    'KOTAKBANK': 'Kotak Mahindra Bank Ltd.',
+    'AXISBANK': 'Axis Bank Ltd.',
+    'LT': 'Larsen & Toubro Ltd.',
+    'ONGC': 'Oil and Natural Gas Corporation Ltd.',
+    'NTPC': 'NTPC Ltd.',
+    'ADANIPORTS': 'Adani Ports and Special Economic Zone Ltd.',
+    'ULTRACEMCO': 'UltraTech Cement Ltd.',
+    'HCLTECH': 'HCL Technologies Ltd.',
+    'TITAN': 'Titan Company Ltd.',
+    'JSWSTEEL': 'JSW Steel Ltd.'
+  };
+  
+  return companyNames[symbol] || `${symbol} Stock`;
+};
+
+// Helper function to generate mock stock quote data
+const getMockStockQuote = (symbol: string): StockQuote => {
+  // Generate a realistic price based on the symbol's character codes
+  const basePrice = sumCharCodes(symbol) % 1000 + 50;
+  const price = basePrice + Math.random() * 50;
+  
+  // Generate a change that's typically within 5% of the price
+  const changePercent = (Math.random() * 10 - 5); // -5% to +5%
+  const change = price * (changePercent / 100);
+  
+  return {
+    symbol,
+    name: getCompanyName(symbol),
+    price: price, // Keep base price in USD for calculations
+    change: change,
+    changePercent: changePercent,
+  };
 };
 
 export const fetchStockData = async (
@@ -181,51 +271,23 @@ export const fetchStockData = async (
   }
 };
 
-export const fetchMarketIndices = async (): Promise<MarketIndex[]> => {
+export const fetchMarketIndices = async () => {
   try {
-    // Alpha Vantage doesn't have a single endpoint for all indices, 
-    // would need multiple calls in a real app
-    // For demo purposes, fetch SPY as a proxy for S&P 500
-    const spyResponse = await fetchStockQuote('SPY');
-    const qqqResponse = await fetchStockQuote('QQQ'); // Nasdaq proxy
-    const diaResponse = await fetchStockQuote('DIA'); // Dow Jones proxy
-    const iwmResponse = await fetchStockQuote('IWM'); // Russell 2000 proxy
+    // In a real app, we would fetch from an actual API
+    // For now, we're using mock data for Indian market indices
     
+    // Simulate a network request
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Return mock data for Indian market indices
     return [
-      {
-        name: 'S&P 500',
-        price: spyResponse.price,
-        change: spyResponse.change,
-        changePercent: spyResponse.changePercent
-      },
-      {
-        name: 'Nasdaq',
-        price: qqqResponse.price,
-        change: qqqResponse.change,
-        changePercent: qqqResponse.changePercent
-      },
-      {
-        name: 'Dow Jones',
-        price: diaResponse.price,
-        change: diaResponse.change,
-        changePercent: diaResponse.changePercent
-      },
-      {
-        name: 'Russell 2000',
-        price: iwmResponse.price,
-        change: iwmResponse.change,
-        changePercent: iwmResponse.changePercent
-      }
+      { name: 'NIFTY 50', symbol: 'NIFTY', price: 22460.35, change: 78.25, changePercent: 0.35 },
+      { name: 'BSE SENSEX', symbol: 'SENSEX', price: 73852.20, change: 242.60, changePercent: 0.33 },
+      { name: 'NIFTY Bank', symbol: 'BANKNIFTY', price: 48275.15, change: -185.35, changePercent: -0.38 },
     ];
   } catch (error) {
     console.error('Error fetching market indices:', error);
-    // Return mock data as fallback
-    return [
-      { name: "S&P 500", price: 4982.73, change: 38.41, changePercent: 0.78 },
-      { name: "Nasdaq", price: 15628.95, change: 164.90, changePercent: 1.07 },
-      { name: "Dow Jones", price: 36879.00, change: -134.15, changePercent: -0.36 },
-      { name: "Russell 2000", price: 2014.38, change: 7.34, changePercent: 0.37 }
-    ];
+    throw error;
   }
 };
 
@@ -299,20 +361,42 @@ export const fetchFinancialNews = async (): Promise<NewsItem[]> => {
 // Helper to generate mock news
 const generateMockNews = (symbol?: string): NewsItem[] => {
   const headlines = [
-    { title: "Market Rally Extends As This Dow Giant Breaks Out", source: "Investor's Daily" },
-    { title: "Tech Stocks Surge On AI Optimism", source: "Wall Street Journal" },
-    { title: "Fed Signals Rate Cut Later This Year", source: "CNBC" },
-    { title: "Inflation Data Shows Cooling Trend", source: "Bloomberg" },
-    { title: "Earnings Beat Expectations Across Sectors", source: "Financial Times" },
-    { title: "Market Volatility Rises Amid Global Tensions", source: "Reuters" }
+    { title: "Nifty, Sensex Climb to Fresh Record Highs", source: "Economic Times" },
+    { title: "RBI Keeps Interest Rates Unchanged, Maintains Growth Forecast", source: "Business Standard" },
+    { title: "IT Stocks Rally on Strong Quarterly Results", source: "Mint" },
+    { title: "Indian GDP Growth Exceeds Expectations", source: "Financial Express" },
+    { title: "FIIs Increase Stake in Indian Equities", source: "Business Line" },
+    { title: "Auto Sector Shows Strong Recovery in Monthly Sales", source: "Moneycontrol" }
   ];
   
   if (symbol) {
-    // Add company-specific headlines
-    headlines.unshift(
-      { title: `${symbol} Announces Quarterly Earnings Beat`, source: "MarketWatch" },
-      { title: `${symbol} Launches New Product Line`, source: "Business Insider" }
-    );
+    // Add company-specific headlines for Indian companies
+    if (symbol === 'RELIANCE') {
+      headlines.unshift(
+        { title: "Reliance Retail Expands with New Store Format", source: "Economic Times" },
+        { title: "Reliance Jio Introduces New 5G Plans", source: "Business Standard" }
+      );
+    } else if (symbol === 'TCS') {
+      headlines.unshift(
+        { title: "TCS Wins Major Digital Transformation Deal", source: "Mint" },
+        { title: "TCS Announces Robust Quarterly Results", source: "Financial Express" }
+      );
+    } else if (symbol === 'HDFCBANK') {
+      headlines.unshift(
+        { title: "HDFC Bank Completes Merger Integration", source: "Business Line" },
+        { title: "HDFC Bank Expands Rural Banking Initiative", source: "Moneycontrol" }
+      );
+    } else if (symbol === 'INFY') {
+      headlines.unshift(
+        { title: "Infosys Launches New AI Platform", source: "Economic Times" },
+        { title: "Infosys Signs Strategic Partnership with Global Client", source: "Business Standard" }
+      );
+    } else {
+      headlines.unshift(
+        { title: `${symbol} Announces Quarterly Results`, source: "Financial Express" },
+        { title: `${symbol} Unveils Strategic Growth Plans`, source: "Business Line" }
+      );
+    }
   }
   
   return headlines.slice(0, 6).map((item, index) => ({
@@ -322,22 +406,36 @@ const generateMockNews = (symbol?: string): NewsItem[] => {
     summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
     time_published: new Date(Date.now() - (index * 3600000)).toLocaleString(),
     sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)] as 'positive' | 'negative' | 'neutral',
-    banner_image: `https://source.unsplash.com/random/800x400?business,${index}`
+    banner_image: `https://source.unsplash.com/random/800x400?business,india,${index}`
   }));
 };
 
 // Helper to generate mock financial news
 const generateMockFinancialNews = (): NewsItem[] => {
-  const categories = ['markets', 'stocks', 'economy', 'business', 'technology', 'crypto'];
+  const headlines = [
+    { title: "Nifty and Sensex Close at Record Highs", source: "Economic Times", topic: "markets" },
+    { title: "RBI Policy Review: Key Takeaways", source: "Business Standard", topic: "economy" },
+    { title: "IT Sector Q1 Performance Analysis", source: "Mint", topic: "technology" },
+    { title: "Auto Sales Data Shows Growth Momentum", source: "Financial Express", topic: "business" },
+    { title: "Banking Sector NPAs Continue to Improve", source: "Business Line", topic: "finance" },
+    { title: "Crude Oil Price Impact on Indian Economy", source: "Moneycontrol", topic: "economy" },
+    { title: "FII Investment Trends in Indian Markets", source: "CNBC-TV18", topic: "markets" },
+    { title: "Rupee Strengthens Against US Dollar", source: "Reuters", topic: "forex" },
+    { title: "Indian Pharma Companies See Export Growth", source: "Mint", topic: "healthcare" },
+    { title: "Telecom Sector Revenue Growth Analysis", source: "Economic Times", topic: "technology" },
+    { title: "Real Estate Market Revival in Major Cities", source: "Financial Express", topic: "realestate" },
+    { title: "Government Announces New Economic Measures", source: "Business Standard", topic: "policy" }
+  ];
+  
   const sentiments = ['positive', 'neutral', 'negative'];
   
-  return Array(12).fill(0).map((_, i) => ({
-    title: `Financial news headline ${i + 1}`,
+  return headlines.map((item, i) => ({
+    title: item.title,
     url: "#",
-    source: ["Bloomberg", "CNBC", "The Wall Street Journal", "Financial Times", "Reuters"][i % 5],
+    source: item.source,
     summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.",
     time_published: new Date(Date.now() - i * 3600000).toLocaleString(),
-    topics: [categories[i % categories.length]],
+    topics: [item.topic],
     sentiment: sentiments[i % sentiments.length] as 'positive' | 'negative' | 'neutral'
   }));
 };
@@ -345,104 +443,105 @@ const generateMockFinancialNews = (): NewsItem[] => {
 // Portfolio API (mock implementation with localStorage persistence)
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
   try {
-    // In a real app, this would fetch from a backend API
-    // For demo, we'll load from localStorage or use mock data
-    const savedPortfolio = localStorage.getItem('portfolio');
-    let portfolio: PortfolioPosition[] = [];
+    // In a real app, this would be an API call to get the user's portfolio
+    // For the demo, we'll use localStorage to persist mock data
     
-    if (savedPortfolio) {
-      portfolio = JSON.parse(savedPortfolio);
+    // Check if we have stored portfolio data
+    const savedPositions = localStorage.getItem('portfolio');
+    let positions: PortfolioPosition[] = [];
+    
+    if (savedPositions) {
+      positions = JSON.parse(savedPositions);
     } else {
-      // Default portfolio
-      portfolio = [
-        { symbol: 'AAPL', name: 'Apple Inc.', shares: 10, avgPrice: 150.00, currentPrice: 0, value: 0, change: 0, changePercent: 0 },
-        { symbol: 'MSFT', name: 'Microsoft Corp.', shares: 5, avgPrice: 300.00, currentPrice: 0, value: 0, change: 0, changePercent: 0 },
-        { symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 3, avgPrice: 120.00, currentPrice: 0, value: 0, change: 0, changePercent: 0 },
-        { symbol: 'AMZN', name: 'Amazon.com', shares: 2, avgPrice: 160.00, currentPrice: 0, value: 0, change: 0, changePercent: 0 },
+      // Use Indian stocks for the mock portfolio data
+      positions = [
+        { 
+          symbol: 'RELIANCE', 
+          name: 'Reliance Industries Ltd.', 
+          shares: 10, 
+          avgPrice: 2800.50, 
+          currentPrice: 2874.25, 
+          value: 28742.50, 
+          change: 73.75, 
+          changePercent: 2.63 
+        },
+        { 
+          symbol: 'TCS', 
+          name: 'Tata Consultancy Services Ltd.', 
+          shares: 5, 
+          avgPrice: 3500.75, 
+          currentPrice: 3671.80, 
+          value: 18359.00, 
+          change: 171.05, 
+          changePercent: 4.89 
+        },
+        { 
+          symbol: 'HDFCBANK', 
+          name: 'HDFC Bank Ltd.', 
+          shares: 15, 
+          avgPrice: 1650.25, 
+          currentPrice: 1689.35, 
+          value: 25340.25, 
+          change: 39.10, 
+          changePercent: 2.37 
+        },
+        { 
+          symbol: 'INFY', 
+          name: 'Infosys Ltd.', 
+          shares: 20, 
+          avgPrice: 1490.80, 
+          currentPrice: 1522.75, 
+          value: 30455.00, 
+          change: 31.95, 
+          changePercent: 2.14 
+        }
       ];
+      localStorage.setItem('portfolio', JSON.stringify(positions));
     }
     
-    // Fetch current prices and calculate values
-    const updatedPortfolio = await Promise.all(
-      portfolio.map(async (position) => {
-        try {
-          const quote = await fetchStockQuote(position.symbol);
-          const currentPrice = quote.price;
-          const value = position.shares * currentPrice;
-          const change = currentPrice - position.avgPrice;
-          const changePercent = (change / position.avgPrice) * 100;
-          
-          return {
-            ...position,
-            currentPrice,
-            value,
-            change,
-            changePercent
-          };
-        } catch (error) {
-          console.error(`Error updating position for ${position.symbol}:`, error);
-          return position;
-        }
-      })
-    );
+    // Calculate total value and gain/loss
+    let totalValue = 0;
+    let totalCost = 0;
+    let dayChange = 0;
     
-    // Calculate totals
-    const totalValue = updatedPortfolio.reduce((sum, position) => sum + position.value, 0);
-    const investedValue = updatedPortfolio.reduce((sum, position) => sum + (position.shares * position.avgPrice), 0);
-    const totalGain = totalValue - investedValue;
-    const totalGainPercent = (totalGain / investedValue) * 100;
+    for (const position of positions) {
+      // Values are already in INR, no need to convert
+      position.value = position.shares * position.currentPrice;
+      position.change = position.currentPrice - position.avgPrice;
+      position.changePercent = (position.change / position.avgPrice) * 100;
+      
+      totalValue += position.value;
+      totalCost += position.shares * position.avgPrice;
+      
+      // Simulate a daily change value (random but consistent)
+      const randomChangePct = -0.67; // Negative daily change for demonstration
+      const positionDayChange = position.value * (randomChangePct / 100);
+      dayChange += positionDayChange;
+    }
     
-    // Mock day change (would be calculated from previous day's close in a real app)
-    const dayChange = totalValue * (Math.random() * 0.03 - 0.01);
+    const totalGain = totalValue - totalCost;
+    const totalGainPercent = (totalGain / totalCost) * 100;
     const dayChangePercent = (dayChange / totalValue) * 100;
     
-    // Calculate sector allocation (mock sectors)
-    const sectorMap: Record<string, number> = {
-      'Technology': 0,
-      'Consumer': 0,
-      'Healthcare': 0,
-      'Finance': 0,
-      'Other': 0
-    };
-    
-    // Map stocks to sectors (in a real app, this would come from a proper data source)
-    updatedPortfolio.forEach(position => {
-      if (['AAPL', 'MSFT', 'GOOGL'].includes(position.symbol)) {
-        sectorMap['Technology'] += position.value;
-      } else if (['AMZN', 'SBUX', 'NKE'].includes(position.symbol)) {
-        sectorMap['Consumer'] += position.value;
-      } else if (['JNJ', 'PFE', 'UNH'].includes(position.symbol)) {
-        sectorMap['Healthcare'] += position.value;
-      } else if (['JPM', 'BAC', 'GS'].includes(position.symbol)) {
-        sectorMap['Finance'] += position.value;
-      } else {
-        sectorMap['Other'] += position.value;
-      }
-    });
-    
-    const sectorAllocation = Object.entries(sectorMap)
-      .filter(([_, value]) => value > 0)
-      .map(([name, value]) => ({
-        name,
-        value: Math.round((value / totalValue) * 100)
-      }));
-    
-    // Save to localStorage
-    localStorage.setItem('portfolio', JSON.stringify(updatedPortfolio));
+    // Generate sector allocation for Indian market
+    const sectors = [
+      { name: 'Technology', value: 48 },
+      { name: 'Energy', value: 28 },
+      { name: 'Financial', value: 24 }
+    ];
     
     return {
-      positions: updatedPortfolio,
+      positions,
       totalValue,
       dayChange,
       dayChangePercent,
       totalGain,
       totalGainPercent,
-      sectorAllocation
+      sectorAllocation: sectors
     };
   } catch (error) {
     console.error('Error fetching portfolio data:', error);
-    // Return mock data as fallback
-    return generateMockPortfolio();
+    throw error;
   }
 };
 
@@ -663,19 +762,20 @@ const generateMockChartData = (timeRange: '1D' | '1W' | '1M' | '3M' | '1Y' | 'Al
 const generateMockPortfolio = (): PortfolioData => {
   return {
     positions: [
-      { symbol: 'AAPL', name: 'Apple Inc.', shares: 10, avgPrice: 150.00, currentPrice: 173.41, value: 1734.10, change: 23.41, changePercent: 15.61 },
-      { symbol: 'MSFT', name: 'Microsoft Corp.', shares: 5, avgPrice: 300.00, currentPrice: 397.58, value: 1987.90, change: 97.58, changePercent: 32.53 },
-      { symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 3, avgPrice: 120.00, currentPrice: 141.16, value: 423.48, change: 21.16, changePercent: 17.63 },
-      { symbol: 'AMZN', name: 'Amazon.com', shares: 2, avgPrice: 160.00, currentPrice: 175.35, value: 350.70, change: 15.35, changePercent: 9.59 },
+      { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', shares: 10, avgPrice: 2800.50, currentPrice: 2874.25, value: 28742.50, change: 73.75, changePercent: 2.63 },
+      { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', shares: 5, avgPrice: 3500.75, currentPrice: 3671.80, value: 18359.00, change: 171.05, changePercent: 4.89 },
+      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', shares: 15, avgPrice: 1650.25, currentPrice: 1689.35, value: 25340.25, change: 39.10, changePercent: 2.37 },
+      { symbol: 'INFY', name: 'Infosys Ltd.', shares: 20, avgPrice: 1490.80, currentPrice: 1522.75, value: 30455.00, change: 31.95, changePercent: 2.14 },
     ],
-    totalValue: 4496.18,
-    dayChange: 82.34,
-    dayChangePercent: 1.87,
-    totalGain: 496.18,
-    totalGainPercent: 12.40,
+    totalValue: 102896.75,
+    dayChange: -688.45,
+    dayChangePercent: -0.67,
+    totalGain: 5154.75,
+    totalGainPercent: 5.28,
     sectorAllocation: [
-      { name: 'Technology', value: 92 },
-      { name: 'Consumer', value: 8 }
+      { name: 'Technology', value: 48 },
+      { name: 'Energy', value: 28 },
+      { name: 'Financial', value: 24 }
     ]
   };
 };
@@ -684,46 +784,46 @@ const generateMockPortfolio = (): PortfolioData => {
 const generateMockInsights = (): InsightItem[] => {
   return [
     {
-      symbol: 'AAPL',
-      company: 'Apple Inc.',
+      symbol: 'RELIANCE',
+      company: 'Reliance Industries Ltd.',
       type: 'buy',
-      summary: 'Strong iPhone sales and services growth potential make Apple an attractive buy at current levels. The company\'s ecosystem continues to expand with new product categories.',
+      summary: 'Strong retail and telecom growth potential make Reliance an attractive buy at current levels. The company\'s expansion into new-age sectors and green energy creates additional upside.',
       confidence: 85,
-      priceTarget: 210.00,
+      priceTarget: 3200.00,
       timestamp: new Date(Date.now() - 2 * 3600000).toISOString()
     },
     {
-      symbol: 'MSFT',
-      company: 'Microsoft Corp.',
+      symbol: 'TCS',
+      company: 'Tata Consultancy Services Ltd.',
       type: 'hold',
-      summary: 'Microsoft\'s cloud business is performing well, but current valuation suggests limited upside in the near term. Long-term prospects remain strong with AI integration across product lines.',
+      summary: 'TCS\'s digital services demand remains strong, but current valuation suggests limited upside in the near term. Long-term prospects remain positive with AI integration and expanding global footprint.',
       confidence: 72,
-      priceTarget: 410.00,
+      priceTarget: 3900.00,
       timestamp: new Date(Date.now() - 5 * 3600000).toISOString()
     },
     {
-      symbol: 'TSLA',
-      company: 'Tesla Inc.',
+      symbol: 'TATAMOTORS',
+      company: 'Tata Motors Ltd.',
       type: 'sell',
-      summary: 'Increased competition in the EV market and production challenges suggest potential downside. The company faces margin pressure and slower growth than previously expected.',
+      summary: 'Increased competition in the EV market and input cost pressures suggest potential downside. The company faces margin challenges in its domestic business despite JLR\'s strong performance.',
       confidence: 68,
-      priceTarget: 175.00,
+      priceTarget: 825.00,
       timestamp: new Date(Date.now() - 8 * 3600000).toISOString()
     },
     {
-      symbol: 'AMD',
-      company: 'Advanced Micro Devices',
+      symbol: 'INFY',
+      company: 'Infosys Ltd.',
       type: 'buy',
-      summary: 'AMD continues to gain market share in high-performance computing and data center segments. The company is well-positioned to benefit from AI computing growth.',
+      summary: 'Infosys continues to gain market share in digital transformation and AI services. The company is well-positioned to benefit from global tech spending recovery.',
       confidence: 78,
-      priceTarget: 190.00,
+      priceTarget: 1750.00,
       timestamp: new Date(Date.now() - 12 * 3600000).toISOString()
     },
     {
-      symbol: 'AMZN',
-      company: 'Amazon.com',
+      symbol: 'HDFCBANK',
+      company: 'HDFC Bank Ltd.',
       type: 'watch',
-      summary: 'AWS growth is stabilizing and retail margins are improving. Monitor upcoming earnings for confirmation of positive trends before adding to positions.',
+      summary: 'Loan growth is stabilizing and asset quality remains strong. Monitor upcoming quarterly results for confirmation of positive trends in the post-merger scenario before adding to positions.',
       confidence: 65,
       timestamp: new Date(Date.now() - 18 * 3600000).toISOString()
     }
@@ -863,44 +963,57 @@ export const searchStocks = async (query: string): Promise<StockSearchResult[]> 
   }
 };
 
-// Helper function to generate mock search results
-function getMockSearchResults(query: string): StockSearchResult[] {
-  const mockStocks = [
-    { symbol: 'AAPL', name: 'Apple Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'GOOG', name: 'Alphabet Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'META', name: 'Meta Platforms Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'TSLA', name: 'Tesla Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'BRK.A', name: 'Berkshire Hathaway Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'JPM', name: 'JPMorgan Chase & Co.', type: 'Equity', region: 'United States' },
-    { symbol: 'JNJ', name: 'Johnson & Johnson', type: 'Equity', region: 'United States' },
-    { symbol: 'UNH', name: 'UnitedHealth Group Incorporated', type: 'Equity', region: 'United States' },
-    { symbol: 'V', name: 'Visa Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'PG', name: 'Procter & Gamble Company', type: 'Equity', region: 'United States' },
-    { symbol: 'XOM', name: 'Exxon Mobil Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'MA', name: 'Mastercard Incorporated', type: 'Equity', region: 'United States' },
-    { symbol: 'HD', name: 'Home Depot Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'BAC', name: 'Bank of America Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'ABBV', name: 'AbbVie Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'PFE', name: 'Pfizer Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'AVGO', name: 'Broadcom Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'COST', name: 'Costco Wholesale Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'DIS', name: 'Walt Disney Company', type: 'Equity', region: 'United States' },
-    { symbol: 'CSCO', name: 'Cisco Systems Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'VZ', name: 'Verizon Communications Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'ADBE', name: 'Adobe Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'NFLX', name: 'Netflix Inc.', type: 'Equity', region: 'United States' },
-    { symbol: 'CMCSA', name: 'Comcast Corporation', type: 'Equity', region: 'United States' },
-    { symbol: 'INTC', name: 'Intel Corporation', type: 'Equity', region: 'United States' }
+// Helper function to get stock search results
+const getMockSearchResults = (query: string): StockSearchResult[] => {
+  // Generate a set of fake results based on the query
+  const results: StockSearchResult[] = [];
+  
+  // Add an exact match if the query looks like a stock symbol
+  if (query.length <= 5 && query.toUpperCase() === query) {
+    results.push({
+      symbol: query.toUpperCase(),
+      name: getCompanyName(query.toUpperCase()),
+      type: 'Equity',
+      region: 'United States',
+    });
+  }
+  
+  // Add some similar matches
+  const variations = ['A', 'B', 'C', 'X', 'Y', 'Z'];
+  for (let i = 0; i < 3; i++) {
+    const randomSymbol = query.toUpperCase() + variations[i % variations.length];
+    if (!results.find(r => r.symbol === randomSymbol)) {
+      results.push({
+        symbol: randomSymbol,
+        name: getCompanyName(randomSymbol),
+        type: 'Equity',
+        region: 'United States',
+      });
+    }
+  }
+  
+  // Add common large cap stocks as well
+  const commonStocks = [
+    { symbol: 'AAPL', name: 'Apple Inc.', region: 'United States', type: 'Equity' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', region: 'United States', type: 'Equity' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', region: 'United States', type: 'Equity' },
+    { symbol: 'AMZN', name: 'Amazon.com Inc.', region: 'United States', type: 'Equity' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', region: 'United States', type: 'Equity' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', region: 'United States', type: 'Equity' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', region: 'United States', type: 'Equity' },
+    { symbol: 'JPM', name: 'JPMorgan Chase & Co.', region: 'United States', type: 'Equity' },
   ];
   
-  const lowerQuery = query.toLowerCase();
-  return mockStocks.filter(stock => 
-    stock.symbol.toLowerCase().includes(lowerQuery) || 
-    stock.name.toLowerCase().includes(lowerQuery)
-  ).slice(0, 8); // Return top 8 results
-} 
+  for (const stock of commonStocks) {
+    if (
+      (stock.symbol.includes(query.toUpperCase()) || 
+       stock.name.toLowerCase().includes(query.toLowerCase())) &&
+      !results.find(r => r.symbol === stock.symbol)
+    ) {
+      results.push(stock);
+      if (results.length >= 10) break;
+    }
+  }
+  
+  return results.slice(0, 10); // Limit to 10 results
+}; 

@@ -17,14 +17,14 @@ interface StockItem {
 }
 
 const WatchlistCard = () => {
-  // Initial watchlist with common stocks
+  // Initial watchlist with common Indian stocks
   const initialWatchlist: StockItem[] = [
-    { symbol: 'AAPL', name: 'Apple Inc.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
-    { symbol: 'AMZN', name: 'Amazon.com', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
-    { symbol: 'TSLA', name: 'Tesla Inc.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
-    { symbol: 'META', name: 'Meta Platforms', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+    { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+    { symbol: 'INFY', name: 'Infosys Ltd.', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd.', price: 0, change: 0, changePercent: 0, starred: true, isLoading: true },
+    { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', price: 0, change: 0, changePercent: 0, starred: false, isLoading: true },
   ];
   
   const [watchlistStocks, setWatchlistStocks] = useState<StockItem[]>(initialWatchlist);
@@ -216,44 +216,47 @@ const WatchlistCard = () => {
               return (
                 <div 
                   key={stock.symbol} 
-                  className="flex justify-between items-center p-2 hover:bg-secondary/50 rounded-md cursor-pointer"
+                  className="flex justify-between items-center py-2 border-b last:border-0 border-border hover:bg-accent/50 rounded px-2"
                 >
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 p-0"
                       onClick={() => toggleStar(index)}
                     >
-                      <Star 
-                        className={`h-4 w-4 ${stock.starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
-                      />
+                      <Star className={`h-4 w-4 ${stock.starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
                     </Button>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{stock.symbol}</span>
-                      <span className="text-xs text-muted-foreground">{stock.name}</span>
+                    
+                    <div>
+                      <div className="font-medium">{stock.symbol}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[120px]">{stock.name}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {stock.isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    ) : (
-                      <div className="flex flex-col items-end">
-                        <span className="font-medium">${stock.price.toFixed(2)}</span>
-                        <span className={isPositive ? 'text-up text-xs' : 'text-down text-xs'}>
-                          {isPositive ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
-                        </span>
+                  
+                  {stock.isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="text-right">
+                      <div className="font-medium">₹{(stock.price * 83.15).toFixed(2)}</div>
+                      <div className={`text-xs ${stock.change >= 0 ? 'text-up' : 'text-down'} flex items-center justify-end`}>
+                        {stock.change >= 0 ? 
+                          <ArrowUp className="h-3 w-3 mr-1" /> : 
+                          <ArrowDown className="h-3 w-3 mr-1" />
+                        }
+                        {(stock.change * 83.15).toFixed(2)} ({stock.changePercent.toFixed(2)}%)
                       </div>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 opacity-0 hover:opacity-100 transition-opacity"
-                      onClick={() => removeStock(index)}
-                    >
-                      <X className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  </div>
+                    </div>
+                  )}
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 p-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeStock(index)}
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
               );
             })

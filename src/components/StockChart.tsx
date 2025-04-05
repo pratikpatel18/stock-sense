@@ -18,14 +18,23 @@ import { fetchStockData, fetchStockQuote } from "@/lib/api";
 interface StockChartProps {
   symbol: string;
   company: string;
+  data?: Array<{date: string; price: number; volume: number}>;
 }
 
-const StockChart = ({ symbol, company }: StockChartProps) => {
+const StockChart = ({ symbol, company, data: initialData }: StockChartProps) => {
   const [timeRange, setTimeRange] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | 'All'>('1M');
   const [data, setData] = useState<Array<{date: string; price: number; volume: number}>>([]);
   const [stockQuote, setStockQuote] = useState<{price: number; change: number; changePercent: number} | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialData || initialData.length === 0);
   const [error, setError] = useState<string | null>(null);
+  
+  // Initialize with provided data if available
+  useEffect(() => {
+    if (initialData && initialData.length > 0) {
+      setData(initialData);
+      setIsLoading(false);
+    }
+  }, [initialData]);
   
   // Fetch stock quote data (current price)
   useEffect(() => {
@@ -53,6 +62,11 @@ const StockChart = ({ symbol, company }: StockChartProps) => {
   
   // Fetch chart data when timeRange changes
   useEffect(() => {
+    // Skip fetching if we already have initialData and haven't changed timeRange
+    if (initialData && initialData.length > 0 && timeRange === '1M') {
+      return;
+    }
+    
     const getChartData = async () => {
       setIsLoading(true);
       try {
@@ -68,7 +82,7 @@ const StockChart = ({ symbol, company }: StockChartProps) => {
     };
     
     getChartData();
-  }, [symbol, timeRange]);
+  }, [symbol, timeRange, initialData]);
   
   const isPositive = stockQuote?.change ? stockQuote.change >= 0 : true;
   
@@ -127,10 +141,10 @@ const StockChart = ({ symbol, company }: StockChartProps) => {
           <div className="flex items-center">
             {stockQuote ? (
               <>
-                <span className="text-2xl font-semibold mr-2">${stockQuote.price.toFixed(2)}</span>
+                <span className="text-2xl font-semibold mr-2">₹{(stockQuote.price * 83.15).toFixed(2)}</span>
                 <span className={`text-sm ${isPositive ? 'text-up' : 'text-down'}`}>
                   {isPositive ? '+' : ''}
-                  {stockQuote.change.toFixed(2)} ({stockQuote.changePercent.toFixed(2)}%)
+                  {(stockQuote.change * 83.15).toFixed(2)} ({stockQuote.changePercent.toFixed(2)}%)
                 </span>
               </>
             ) : (
@@ -184,7 +198,7 @@ const StockChart = ({ symbol, company }: StockChartProps) => {
                   tick={{ fontSize: 12 }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
+                  tickFormatter={(value) => `₹${value}`}
                   width={60}
                 />
                 <Tooltip 
@@ -195,7 +209,7 @@ const StockChart = ({ symbol, company }: StockChartProps) => {
                     borderRadius: "0.5rem"
                   }}
                   labelStyle={{ color: "hsl(var(--card-foreground))" }}
-                  formatter={(value) => [`$${value}`, 'Price']}
+                  formatter={(value) => [`₹${value}`, 'Price']}
                 />
                 <Area
                   type="monotone"

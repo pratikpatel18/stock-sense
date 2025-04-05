@@ -33,10 +33,14 @@ const StockDetails = () => {
       
       setIsLoading(true);
       try {
+        // Fetch both the quote and chart data
         const quote = await fetchStockQuote(symbol);
+        const chartData = await fetchStockData(symbol, '1M');
+        
         setStockData({
           ...quote,
           name: quote.name || `${symbol} Stock`,
+          chartData // Store chart data in the same state object
         });
         setError(null);
       } catch (err) {
@@ -49,31 +53,6 @@ const StockDetails = () => {
     
     getStockData();
   }, [symbol]);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const symbol = location.pathname.split('/').pop() || '';
-        const data = await fetchStockData(symbol, '1M');
-        setStockData(data);
-        
-        // If we're on the analysis tab, also fetch analysis data
-        if (activeTab === "analysis") {
-          await fetchAnalysisData(symbol);
-        }
-      } catch (err) {
-        setError("Failed to load stock data. Please try again later.");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [location.pathname]);
   
   // Fetch analysis data when switching to analysis tab
   useEffect(() => {
@@ -182,7 +161,11 @@ const StockDetails = () => {
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
-              <StockChart symbol={symbol} company={stockData.name} />
+              <StockChart 
+                symbol={symbol} 
+                company={stockData.name} 
+                data={stockData.chartData || []} 
+              />
             </div>
             
             <div className="flex flex-col gap-6">
@@ -194,18 +177,18 @@ const StockDetails = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Price</span>
-                      <span className="font-medium">${stockData.price.toFixed(2)}</span>
+                      <span className="font-medium">₹{(stockData.price * 83.15).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Change</span>
                       <span className={stockData.change >= 0 ? 'text-up' : 'text-down'}>
-                        {stockData.change >= 0 ? '+' : ''}{stockData.change.toFixed(2)} ({stockData.changePercent.toFixed(2)}%)
+                        {stockData.change >= 0 ? '+' : ''}{(stockData.change * 83.15).toFixed(2)} ({stockData.changePercent.toFixed(2)}%)
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Market Cap</span>
                       <span className="font-medium">
-                        ${(stockData.price * (1000000 + Math.random() * 10000000)).toLocaleString()}
+                        ₹{((stockData.price * (1000000 + Math.random() * 10000000)) * 83.15).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -227,27 +210,27 @@ const StockDetails = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Open</span>
                       <span className="font-medium">
-                        ${(stockData.price - stockData.change * Math.random()).toFixed(2)}
+                        ₹{((stockData.price - stockData.change * Math.random()) * 83.15).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Previous Close</span>
                       <span className="font-medium">
-                        ${(stockData.price - stockData.change).toFixed(2)}
+                        ₹{((stockData.price - stockData.change) * 83.15).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Day Range</span>
                       <span className="font-medium">
-                        ${(stockData.price - Math.abs(stockData.change) - 2).toFixed(2)} - 
-                        ${(stockData.price + Math.abs(stockData.change) + 1).toFixed(2)}
+                        ₹{((stockData.price - Math.abs(stockData.change) - 2) * 83.15).toFixed(2)} - 
+                        ₹{((stockData.price + Math.abs(stockData.change) + 1) * 83.15).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">52wk Range</span>
                       <span className="font-medium">
-                        ${(stockData.price * 0.7).toFixed(2)} - 
-                        ${(stockData.price * 1.2).toFixed(2)}
+                        ₹{((stockData.price * 0.7) * 83.15).toFixed(2)} - 
+                        ₹{((stockData.price * 1.2) * 83.15).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -319,11 +302,11 @@ const StockDetails = () => {
                         <div className="flex justify-between">
                           <div>
                             <span className="text-xs text-muted-foreground">Support</span>
-                            <div className="font-semibold">${analysisData.technicalAnalysis.support}</div>
+                            <div className="font-semibold">₹{(analysisData.technicalAnalysis.support * 83.15).toFixed(2)}</div>
                           </div>
                           <div>
                             <span className="text-xs text-muted-foreground">Resistance</span>
-                            <div className="font-semibold">${analysisData.technicalAnalysis.resistance}</div>
+                            <div className="font-semibold">₹{(analysisData.technicalAnalysis.resistance * 83.15).toFixed(2)}</div>
                           </div>
                         </div>
                       </div>
@@ -346,7 +329,7 @@ const StockDetails = () => {
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">EPS</div>
-                          <div className="font-semibold">${analysisData.fundamentalAnalysis.eps}</div>
+                          <div className="font-semibold">₹{(analysisData.fundamentalAnalysis.eps * 83.15).toFixed(2)}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Dividend Yield</div>
@@ -423,15 +406,15 @@ const StockDetails = () => {
                         <div className="flex justify-between">
                           <div>
                             <div className="text-xs text-muted-foreground">Low</div>
-                            <div className="font-semibold">${analysisData.aiPredictions.priceTarget.low}</div>
+                            <div className="font-semibold">₹{(analysisData.aiPredictions.priceTarget.low * 83.15).toFixed(2)}</div>
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground">Median</div>
-                            <div className="font-semibold">${analysisData.aiPredictions.priceTarget.median}</div>
+                            <div className="font-semibold">₹{(analysisData.aiPredictions.priceTarget.median * 83.15).toFixed(2)}</div>
                           </div>
                           <div>
                             <div className="text-xs text-muted-foreground">High</div>
-                            <div className="font-semibold">${analysisData.aiPredictions.priceTarget.high}</div>
+                            <div className="font-semibold">₹{(analysisData.aiPredictions.priceTarget.high * 83.15).toFixed(2)}</div>
                           </div>
                         </div>
                       </div>

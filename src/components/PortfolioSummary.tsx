@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
-import { Wallet, Lock, Loader2, Plus } from "lucide-react";
+import { Wallet, Lock, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { fetchPortfolioData, addToPortfolio, removeFromPortfolio, PortfolioData, PortfolioPosition } from '@/lib/api';
@@ -77,7 +77,7 @@ const AddPositionDialog = ({ onAdd }: { onAdd: () => void }) => {
             <Label htmlFor="symbol">Stock Symbol</Label>
             <Input
               id="symbol"
-              placeholder="e.g. AAPL"
+              placeholder="e.g. RELIANCE"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
             />
@@ -95,10 +95,10 @@ const AddPositionDialog = ({ onAdd }: { onAdd: () => void }) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="price">Purchase Price</Label>
+            <Label htmlFor="price">Purchase Price (₹)</Label>
             <Input
               id="price"
-              placeholder="e.g. 150.00"
+              placeholder="e.g. 2800.50"
               type="number"
               min="0.01"
               step="0.01"
@@ -117,48 +117,48 @@ const AddPositionDialog = ({ onAdd }: { onAdd: () => void }) => {
   );
 };
 
-// Mock initial portfolio with US stocks
+// Mock initial portfolio with Indian stocks
 const mockInitialPortfolio = (): PortfolioPosition[] => {
   return [
     { 
-      symbol: 'AAPL', 
-      name: 'Apple Inc.', 
+      symbol: 'RELIANCE', 
+      name: 'Reliance Industries Ltd.', 
       shares: 10, 
-      avgPrice: 150.00, 
-      currentPrice: 173.41, 
-      value: 1734.10, 
-      change: 23.41, 
-      changePercent: 15.61 
+      avgPrice: 2800.50, 
+      currentPrice: 2874.25, 
+      value: 28742.50, 
+      change: 73.75, 
+      changePercent: 2.63 
     },
     { 
-      symbol: 'MSFT', 
-      name: 'Microsoft Corp.', 
+      symbol: 'TCS', 
+      name: 'Tata Consultancy Services Ltd.', 
       shares: 5, 
-      avgPrice: 300.00, 
-      currentPrice: 397.58, 
-      value: 1987.90, 
-      change: 97.58, 
-      changePercent: 32.53 
+      avgPrice: 3500.75, 
+      currentPrice: 3671.80, 
+      value: 18359.00, 
+      change: 171.05, 
+      changePercent: 4.89 
     },
     { 
-      symbol: 'GOOGL', 
-      name: 'Alphabet Inc.', 
-      shares: 8, 
-      avgPrice: 120.00, 
-      currentPrice: 141.16, 
-      value: 1129.28, 
-      change: 21.16, 
-      changePercent: 17.63 
+      symbol: 'HDFCBANK', 
+      name: 'HDFC Bank Ltd.', 
+      shares: 15, 
+      avgPrice: 1650.25, 
+      currentPrice: 1689.35, 
+      value: 25340.25, 
+      change: 39.10, 
+      changePercent: 2.37 
     },
     { 
-      symbol: 'AMZN', 
-      name: 'Amazon.com Inc.', 
-      shares: 6, 
-      avgPrice: 160.00, 
-      currentPrice: 175.35, 
-      value: 1052.10, 
-      change: 15.35, 
-      changePercent: 9.59 
+      symbol: 'INFY', 
+      name: 'Infosys Ltd.', 
+      shares: 20, 
+      avgPrice: 1490.80, 
+      currentPrice: 1522.75, 
+      value: 30455.00, 
+      change: 31.95, 
+      changePercent: 2.14 
     },
   ];
 };
@@ -300,92 +300,125 @@ const PortfolioSummary = () => {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl font-semibold">Portfolio</CardTitle>
-        <div className="flex items-center gap-2">
-          <AddPositionDialog onAdd={loadPortfolioData} />
-          <Badge variant="outline">
-            <Wallet className="mr-1 h-3 w-3" />
-            ${portfolioData.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </Badge>
+    <Card className="col-span-2">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="space-y-1">
+          <CardTitle className="text-xl font-semibold">My Portfolio</CardTitle>
+          {!loading && (
+            <div className="text-sm text-muted-foreground">
+              Total Value: ₹{portfolioData.totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </div>
+          )}
         </div>
+        {isAuthenticated ? (
+          <AddPositionDialog onAdd={loadPortfolioData} />
+        ) : (
+          <Button variant="outline" size="sm" className="gap-1">
+            <Lock className="h-4 w-4" /> Sign In to View
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <div className="text-xs text-muted-foreground">Day Change</div>
-            <div className={`text-lg font-bold ${portfolioData.dayChange >= 0 ? 'text-up' : 'text-down'}`}>
-              {portfolioData.dayChange >= 0 ? '+' : ''}${Math.abs(portfolioData.dayChange).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-              ({portfolioData.dayChange >= 0 ? '+' : ''}{portfolioData.dayChangePercent.toFixed(2)}%)
-            </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Total Gain</div>
-            <div className={`text-lg font-bold ${portfolioData.totalGain >= 0 ? 'text-up' : 'text-down'}`}>
-              {portfolioData.totalGain >= 0 ? '+' : ''}${Math.abs(portfolioData.totalGain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-              ({portfolioData.totalGain >= 0 ? '+' : ''}{portfolioData.totalGainPercent.toFixed(2)}%)
-            </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-500">{error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4" 
+              onClick={loadPortfolioData}
+            >
+              Retry
+            </Button>
           </div>
-        </div>
-        
-        {portfolioData.sectorAllocation.length > 0 ? (
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={portfolioData.sectorAllocation}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
-                  label={({ name, value }) => `${name} ${value}%`}
-                  labelLine={false}
-                >
-                  {portfolioData.sectorAllocation.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={COLORS[index % COLORS.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Legend 
-                  layout="horizontal" 
-                  verticalAlign="bottom" 
-                  align="center"
-                  wrapperStyle={{ fontSize: '12px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+        ) : portfolioData.positions.length === 0 ? (
+          <div className="text-center py-8">
+            <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">Your portfolio is empty.</p>
+            <AddPositionDialog onAdd={loadPortfolioData} />
           </div>
         ) : (
-          <div>
-            <h3 className="text-sm font-medium mb-2">Positions</h3>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {portfolioData.positions.map((position, index) => (
-                <div key={index} className="flex justify-between items-center border-b pb-2">
-                  <div>
-                    <div className="font-medium">{position.symbol}</div>
-                    <div className="text-xs text-muted-foreground">{position.shares} shares @ ${position.avgPrice.toFixed(2)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div>${position.value.toFixed(2)}</div>
-                    <div className={position.change >= 0 ? 'text-up text-xs' : 'text-down text-xs'}>
-                      {position.change >= 0 ? '+' : ''}${position.change.toFixed(2)} ({position.changePercent.toFixed(2)}%)
-                    </div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={() => handleRemovePosition(position.symbol)}
-                  >
-                    &times;
-                  </Button>
+          <div className="space-y-6">
+            {/* Overview */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-muted rounded-lg p-3">
+                <div className="text-xs text-muted-foreground mb-1">Day Change</div>
+                <div className={`text-lg font-bold ${portfolioData.dayChange >= 0 ? 'text-up' : 'text-down'}`}>
+                  {portfolioData.dayChange >= 0 ? '+' : ''}
+                  ₹{portfolioData.dayChange.toFixed(2)} ({portfolioData.dayChangePercent.toFixed(2)}%)
                 </div>
-              ))}
+              </div>
+              <div className="bg-muted rounded-lg p-3">
+                <div className="text-xs text-muted-foreground mb-1">Total Gain</div>
+                <div className={`text-lg font-bold ${portfolioData.totalGain >= 0 ? 'text-up' : 'text-down'}`}>
+                  {portfolioData.totalGain >= 0 ? '+' : ''}
+                  ₹{portfolioData.totalGain.toFixed(2)} ({portfolioData.totalGainPercent.toFixed(2)}%)
+                </div>
+              </div>
+              <div className="bg-muted rounded-lg p-3">
+                <div className="text-xs text-muted-foreground mb-1">Positions</div>
+                <div className="text-lg font-bold">{portfolioData.positions.length}</div>
+              </div>
+            </div>
+            
+            {/* Positions Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Symbol</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Shares</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Avg Price</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Current</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Value</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Gain</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-muted-foreground"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border bg-card">
+                  {portfolioData.positions.map((position, index) => (
+                    <tr key={index} className="hover:bg-muted/50">
+                      <td className="px-4 py-2">
+                        <Link to={`/stock/${position.symbol}`} className="hover:underline font-semibold flex items-center">
+                          {position.symbol}
+                        </Link>
+                        <div className="text-xs text-muted-foreground">{position.name}</div>
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {position.shares}
+                      </td>
+                      <td className="px-4 py-2 text-right whitespace-nowrap">
+                        ₹{position.avgPrice.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 text-right whitespace-nowrap">
+                        ₹{position.currentPrice.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 text-right whitespace-nowrap font-medium">
+                        ₹{position.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-4 py-2 text-right whitespace-nowrap">
+                        <span className={`${position.change >= 0 ? 'text-up' : 'text-down'}`}>
+                          {position.change >= 0 ? '+' : ''}
+                          ₹{position.change.toFixed(2)} ({position.changePercent.toFixed(2)}%)
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={() => handleRemovePosition(position.symbol)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
