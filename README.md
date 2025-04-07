@@ -1,4 +1,4 @@
-# Stock Whisper AI Hub
+# Stock-sense
 
 A modern stock market dashboard built with React, TypeScript, and Tailwind CSS.
 
